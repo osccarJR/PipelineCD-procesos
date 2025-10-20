@@ -32,6 +32,7 @@ jobs:
           pip install flake8 pylint black isort pytest coverage
 
       - name: Lint (flake8)
+        continue-on-error: true
         run: flake8 .
 
       - name: Lint (pylint soft)

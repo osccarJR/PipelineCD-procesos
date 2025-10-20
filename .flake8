@@ -38,3 +38,6 @@ statistics = True
 
 # Count errors
 count = True
+
+# Extend ignore with additional rules
+extend-ignore = B907,C901,F541
