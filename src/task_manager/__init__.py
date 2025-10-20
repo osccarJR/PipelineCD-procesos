@@ -3,9 +3,9 @@
 __version__ = "1.0.0"
 __author__ = "Senior Dev Team"
 
-from .task import Task, TaskStatus, TaskPriority
+from .exceptions import DuplicateTaskError, TaskNotFoundError, ValidationError
+from .task import Task, TaskPriority, TaskStatus
 from .task_manager import TaskManager
-from .exceptions import TaskNotFoundError, DuplicateTaskError, ValidationError
 
 __all__ = [
     "Task",
