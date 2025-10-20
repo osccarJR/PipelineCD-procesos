@@ -1,0 +1,146 @@
+name: CI/CD — Python CLI (Build, Test, Push & Deploy)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build_and_push:
+    name: Lint · Tests · Build · Push
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+          pip install flake8 pylint black isort pytest coverage
+
+      - name: Lint (flake8)
+        run: flake8 .
+
+      - name: Lint (pylint soft)
+        continue-on-error: true
+        run: |
+          pylint $(git ls-files '*.py') || echo "pylint warnings collected"
+
+      - name: Format check (black)
+        run: black --check .
+
+      - name: Import order check (isort)
+        run: isort --check-only .
+
+      - name: Run tests with coverage
+        run: |
+          coverage run -m pytest -q
+          coverage xml
+          coverage report -m
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Notificaciones build
+      - name: Notify success (Discord)
+        if: ${{ success() }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "✅ Build+Push OK → ${{ github.repository }}:${{ github.sha }}"
+
+      - name: Notify failure (Discord)
+        if: ${{ failure() }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "❌ Build+Push FALLÓ en `${{ github.ref_name }}` (commit ${{ github.sha }})"
+
+      - name: Always summary (Build)
+        if: ${{ always() }}
+        run: |
+          echo "## Build & Push" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: Deploy on Local Windows (Self-hosted)
+    runs-on: [self-hosted, windows, deploy]
+    needs: build_and_push
+
+    steps:
+      - name: Docker login GHCR (read)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ("${{ secrets.GHCR_READ_TOKEN }}" -ne "") {
+            "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          } else {
+            Write-Host "Intentando sin GHCR_READ_TOKEN (si falla, crea el secret)."
+          }
+
+      - name: Compose pull & up -d
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "C:\Users\oscar\Downloads\PipeLine_CD"
+          docker compose pull
+          docker compose up -d
+          docker image prune -af
+
+      - name: Notify deploy success (Discord)
+        if: ${{ success() }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "🚀 Deploy OK en laptop Windows para `${{ github.ref_name }}`"
+
+      - name: Notify deploy failure (Discord)
+        if: ${{ failure() }}
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "🛑 Deploy FALLÓ en laptop Windows para `${{ github.ref_name }}`"
+
+      - name: Always summary (Deploy)
+        if: ${{ always() }}
+        run: |
+          echo "## Deploy local (Windows)" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
