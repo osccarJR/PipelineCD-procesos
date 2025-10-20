@@ -106,45 +106,42 @@ jobs:
     needs: build_and_push
 
     steps:
-      # 1) Permitir scripts de PowerShell en este proceso (evita el error de firma)
-      - name: Allow PowerShell scripts for this job
-        shell: powershell
-        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-
-      # 2) Login a GHCR (usa GHCR_READ_TOKEN si lo tienes)
       - name: Docker login GHCR (read)
-        shell: powershell
+        shell: cmd
+        env:
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          ACTOR: ${{ github.actor }}
         run: |
-          if ("${{ secrets.GHCR_READ_TOKEN }}" -ne "") {
-            "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          } else {
-            Write-Host "Intentando sin GHCR_READ_TOKEN (si falla, crea el secret con read:packages)."
-          }
+          if not "%GHCR_READ_TOKEN%"=="" (
+            echo %GHCR_READ_TOKEN% | docker login ghcr.io -u %ACTOR% --password-stdin
+          ) else (
+            echo No GHCR_READ_TOKEN provided. Trying without login token...
+          )
 
-      # 3) Pull & up -d del compose en tu ruta local
       - name: Docker Compose Pull & Up
-        shell: powershell
+        shell: cmd
         run: |
-          Set-Location "C:\Users\oscar\Downloads\PipeLine_CD"
+          cd /d C:\Users\oscar\Downloads\PipeLine_CD
           docker compose pull
           docker compose up -d
           docker image prune -af
 
-      # 4) Notificación a Discord compatible con Windows (sin container action)
+      # Notificación a Discord compatible con Windows (sin PowerShell ni contenedor)
       - name: Discord notify (always)
         if: ${{ always() }}
-        shell: powershell
+        shell: cmd
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          JOB_STATUS: ${{ job.status }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
         run: |
-          $msg = switch ("${{ job.status }}") {
-            "success" { "🚀 Deploy OK en laptop Windows para `${{ github.ref_name }}` (commit ${{ github.sha }})" }
-            "failure" { "🛑 Deploy FALLÓ en laptop Windows para `${{ github.ref_name }}` (commit ${{ github.sha }})" }
-            default   { "ℹ️ Deploy finalizado en laptop Windows para `${{ github.ref_name }}` (commit ${{ github.sha }})" }
-          }
-          $payload = @{ content = $msg } | ConvertTo-Json
-          Invoke-RestMethod -Method Post -Uri "${{ secrets.DISCORD_WEBHOOK }}" -ContentType "application/json" -Body $payload
+          set MSG=Deploy %JOB_STATUS% en laptop Windows para %REF_NAME% (commit %SHA%)
+          curl -H "Content-Type: application/json" -d "{\"content\":\"%MSG%\"}" %DISCORD_WEBHOOK%
 
       - name: Always summary (Deploy)
         if: ${{ always() }}
+        shell: cmd
         run: |
-          echo "## Deploy local (Windows)" >> $GITHUB_STEP_SUMMARY
-          echo "Status: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo ## Deploy local \(Windows\)>> %GITHUB_STEP_SUMMARY%
+          echo Status: ${{ job.status }}>> %GITHUB_STEP_SUMMARY%
