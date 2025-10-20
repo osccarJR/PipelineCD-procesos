@@ -250,15 +250,11 @@ def update_task(manager):
         print("\nDeje en blanco para mantener el valor actual.")
 
         new_title = input(f"Nuevo titulo [{current_task.title}]: ").strip()
-        new_description = input(
-            f"Nueva descripcion [{current_task.description}]: "
-        ).strip()
+        new_description = input(f"Nueva descripcion [{current_task.description}]: ").strip()
 
         # Prioridad
         print("\nPrioridades: 1=Baja, 2=Media, 3=Alta, 4=Critica")
-        priority_input = input(
-            f"Nueva prioridad [{current_task.priority.value}]: "
-        ).strip()
+        priority_input = input(f"Nueva prioridad [{current_task.priority.value}]: ").strip()
 
         priority_map = {
             "1": TaskPriority.LOW,

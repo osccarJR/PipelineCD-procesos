@@ -129,7 +129,9 @@ def main():
     # 10. Actualizar una tarea
     print("\n10. Actualizando una tarea...")
     manager.update_task(
-        tarea3.task_id, title="Comprar viveres y productos de limpieza", priority=TaskPriority.MEDIUM
+        tarea3.task_id,
+        title="Comprar viveres y productos de limpieza",
+        priority=TaskPriority.MEDIUM,
     )
     tarea_actualizada = manager.get_task(tarea3.task_id)
     print(f"   [OK] Tarea actualizada: {tarea_actualizada.title}")

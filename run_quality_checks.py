@@ -25,9 +25,7 @@ def run_command(cmd: List[str], description: str) -> Tuple[bool, str]:
     print(f"{'=' * 70}")
 
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, check=False, shell=True
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False, shell=True)
 
         output = result.stdout + result.stderr
 
