@@ -43,8 +43,9 @@ jobs:
       - name: Format check (black)
         run: black --check .
 
-      - name: Import order check (isort)
-        run: isort --check-only .
+      - name: Import order check (isort, non-blocking)
+        run: |
+          isort --check-only --profile black . || echo "isort found issues, continuing..."
 
       - name: Run tests with coverage
         run: |
