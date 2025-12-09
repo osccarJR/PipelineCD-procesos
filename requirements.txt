@@ -1,4 +1,5 @@
 # Core dependencies (none required for the app itself)
+launchdarkly-server-sdk>=9.12.0
 
 # Testing dependencies
 pytest==8.0.0
