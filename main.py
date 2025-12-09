@@ -455,8 +455,12 @@ def main():
     print(" " * 15 + "BIENVENIDO AL GESTOR DE TAREAS")
     print("=" * 70)
 
-    # Preguntar si quiere modo demo
-    demo = input("\nDesea cargar tareas de ejemplo? (s/n) [n]: ").strip().lower()
+    # Preguntar modo demo solo en entornos interactivos
+    if sys.stdin.isatty():
+        demo = input("\nDesea cargar tareas de ejemplo? (s/n) [n]: ").strip().lower()
+    else:
+        demo = "n"
+
     if demo == "s":
         demo_mode(manager)
 
