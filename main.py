@@ -6,6 +6,7 @@ Ejecutar: python main.py
 
 import os
 import sys
+import time
 from datetime import datetime, timedelta
 
 try:
@@ -461,15 +462,16 @@ def main():
     if demo == "s":
         demo_mode(manager)
 
-    if not sys.stdin.isatty():
-        print("Modo no interactivo detectado. Aplicación iniciada correctamente.")
-        return
-
     while True:
         print_menu()
 
         try:
             choice = input("Seleccione una opcion (0-10): ").strip()
+        except EOFError:
+            # Sin TTY (por ejemplo en Kubernetes): quedar en modo idle para evitar reinicios.
+            print("\n[INFO] Entrada no interactiva detectada. Manteniendo contenedor en ejecución.")
+            while True:
+                time.sleep(3600)
 
             if choice == "0":
                 print("\nGracias por usar el Gestor de Tareas. Hasta luego!")
