@@ -461,6 +461,10 @@ def main():
     if demo == "s":
         demo_mode(manager)
 
+    if not sys.stdin.isatty():
+        print("Modo no interactivo detectado. Aplicación iniciada correctamente.")
+        return
+
     while True:
         print_menu()
 
@@ -504,7 +508,8 @@ def main():
             else:
                 print("\n[ERROR] Opcion invalida. Por favor seleccione 0-10.")
 
-            input("\nPresione Enter para continuar...")
+            if sys.stdin.isatty():
+                input("\nPresione Enter para continuar...")
 
         except KeyboardInterrupt:
             print("\n\nInterrumpido por el usuario. Hasta luego!")
