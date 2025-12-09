@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 try:
     import ldclient
     from ldclient.config import Config
+
     try:
         from ldclient import Context
     except ImportError:
@@ -361,8 +362,7 @@ def show_statistics(manager, ld_client=None, ld_flag_key="enable-advanced-statis
 
         print(f"Porcentaje de tareas vencidas: {overdue_rate:.2f}%")
         print(
-            "Indice de salud (completadas - vencidas): "
-            f"{stats['completed'] - stats['overdue']}"
+            "Indice de salud (completadas - vencidas): " f"{stats['completed'] - stats['overdue']}"
         )
     # ---------------------------------------------------------------
 
