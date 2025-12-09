@@ -25,7 +25,7 @@ spec:
                   name: launchdarkly-secret
                   key: sdk-key
             - name: LD_FLAG_KEY
-              value: enable-advanced-stats
+              value: enable-advanced-statistics
           args:
             - "python"
             - "main.py"

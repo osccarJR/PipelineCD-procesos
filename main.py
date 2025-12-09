@@ -4,8 +4,13 @@ Aplicación de línea de comandos para gestión de tareas.
 Ejecutar: python main.py
 """
 
+import os
 import sys
 from datetime import datetime, timedelta
+
+import ldclient
+from ldclient.config import Config
+from ldclient.context import Context
 
 from src.task_manager import (
     TaskManager,
@@ -14,6 +19,29 @@ from src.task_manager import (
     TaskStatus,
     ValidationError,
 )
+
+
+LD_CLIENT = None
+LD_FLAG_KEY = os.getenv("LD_FLAG_KEY", "enable-advanced-statistics")
+
+
+def init_launchdarkly() -> None:
+    """Inicializa el cliente de LaunchDarkly si hay SDK key.
+
+    Si no hay SDK key configurada, deja LD_CLIENT en None
+    para que la app siga funcionando sin feature flags.
+    """
+    global LD_CLIENT
+
+    sdk_key = os.getenv("LD_SDK_KEY")
+    if not sdk_key:
+        print("[LaunchDarkly] SDK key no configurada. Estadisticas avanzadas deshabilitadas.")
+        LD_CLIENT = None
+        return
+
+    ldclient.set_config(Config(sdk_key=sdk_key))
+    LD_CLIENT = ldclient.get()
+    print("[LaunchDarkly] Cliente inicializado correctamente.")
 
 
 def print_separator():
@@ -311,7 +339,7 @@ def delete_task(manager):
 
 
 def show_statistics(manager):
-    """Muestra estadísticas del gestor."""
+    """Muestra estadisticas del gestor."""
     print_separator()
     print("ESTADISTICAS")
     print_separator()
@@ -325,6 +353,55 @@ def show_statistics(manager):
     print(f"Canceladas: {stats['cancelled']}")
     print(f"Vencidas: {stats['overdue']}")
     print(f"\nTasa de completitud: {stats['completion_rate']:.2f}%")
+
+    # --- Integracion con LaunchDarkly: estadisticas avanzadas ---
+    advanced_enabled = False
+
+    if LD_CLIENT is not None:
+        try:
+            # Contexto simple para este CLI
+            context = (
+                Context.builder("cli-user")
+                .name("CLI Task Manager")
+                .set("environment", os.getenv("APP_ENV", "dev"))
+                .build()
+            )
+
+            advanced_enabled = LD_CLIENT.variation(
+                LD_FLAG_KEY,
+                context,
+                False,  # default si el flag no existe o esta off
+            )
+        except Exception as exc:
+            print(f"\n[LaunchDarkly] Error al evaluar feature flag: {exc}")
+
+    if advanced_enabled:
+        print("\n[FEATURE FLAG] Estadisticas avanzadas habilitadas:")
+        # Ejemplo de datos "extra"
+        completion_rate = stats["completion_rate"]
+        if stats["total"] > 0:
+            avg_tasks_per_status = stats["total"] / max(
+                1,
+                stats["pending"]
+                + stats["in_progress"]
+                + stats["completed"]
+                + stats["cancelled"],
+            )
+        else:
+            avg_tasks_per_status = 0.0
+
+        print(
+            f"- Ratio tareas vencidas / total: {stats['overdue'] / stats['total']:.2f}"
+            if stats["total"] > 0
+            else "- No hay tareas registradas."
+        )
+        print(f"- Tareas promedio por estado: {avg_tasks_per_status:.2f}")
+        print(
+            f"- Nivel de salud del tablero: "
+            f"{'ALTO' if completion_rate > 70 else 'MEDIO' if completion_rate > 40 else 'BAJO'}"
+        )
+    else:
+        print("\n[INFO] Estadisticas avanzadas deshabilitadas (feature flag OFF).")
 
 
 def show_overdue_tasks(manager):
@@ -385,6 +462,9 @@ def demo_mode(manager):
 
 def main():
     """Función principal de la aplicación."""
+    # Inicializar LaunchDarkly una sola vez
+    init_launchdarkly()
+
     manager = TaskManager()
 
     print("\n" + "=" * 70)
