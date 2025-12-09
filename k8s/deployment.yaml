@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-manager
+  labels:
+    app: task-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: task-manager
+  template:
+    metadata:
+      labels:
+        app: task-manager
+    spec:
+      containers:
+        - name: task-manager
+          image: ghcr.io/osccarJR/PipelineCD-procesos:latest
+          imagePullPolicy: Always
+          env:
+            - name: LD_SDK_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: launchdarkly-secret
+                  key: sdk-key
+            - name: LD_FLAG_KEY
+              value: enable-advanced-stats
+          args:
+            - "python"
+            - "main.py"
+          # Para health checks básicos (puedes adaptarlo si expones HTTP luego)
+          readinessProbe:
+            exec:
+              command: ["python", "-m", "py_compile", "main.py"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["python", "-m", "py_compile", "main.py"]
+            initialDelaySeconds: 15
+            periodSeconds: 20

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: task-manager-cli
+  namespace: argocd      # <- donde está instalado Argo CD
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/osccarJR/PipelineCD-procesos.git
+    targetRevision: main
+    path: k8s            # <- carpeta donde están deployment.yaml / service.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: task-manager
+  syncPolicy:
+    automated:
+      prune: true        # borra recursos que ya no estén en Git
+      selfHeal: true     # corrige cambios manuales en el cluster
+    syncOptions:
+      - CreateNamespace=true
