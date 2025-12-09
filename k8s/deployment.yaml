@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: task-manager
-          image: ghcr.io/osccarjr/pipelinecd-procesos:latest
+          image: ghcr.io/osccarjr/pipelinedcd-procesos:latest
           imagePullPolicy: Always
           env:
             - name: LD_SDK_KEY
