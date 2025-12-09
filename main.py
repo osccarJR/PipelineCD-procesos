@@ -456,10 +456,7 @@ def main():
     print("=" * 70)
 
     # Preguntar modo demo solo en entornos interactivos
-    if sys.stdin.isatty():
-        demo = input("\nDesea cargar tareas de ejemplo? (s/n) [n]: ").strip().lower()
-    else:
-        demo = "n"
+    demo = os.getenv("LOAD_DEMO", "n").strip().lower()
 
     if demo == "s":
         demo_mode(manager)
