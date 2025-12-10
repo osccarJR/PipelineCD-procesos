@@ -9,6 +9,6 @@ spec:
     app: task-manager
   ports:
     - port: 80
-      targetPort: 8000  # o el puerto donde expongas tu API
+      targetPort: 8000
       protocol: TCP
   type: ClusterIP
